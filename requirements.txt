@@ -1,5 +1,7 @@
+Django==4.0.2
+django_heroku==0.3.1
 Flask==2.0.3
+Flask_Cors==3.0.10
 numpy==1.22.2
 pythainlp==3.0.5
 scikit_learn==1.0.2
-gunicorn
