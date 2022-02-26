@@ -12,7 +12,7 @@ CORS(app)
 
 @app.route("/")
 def hello():
-    return render_template('index.html') 
+    return 'hello,I am flash Application'
 
 @app.route('/checksimilarity', methods = ['POST']) 
 def checking(): 
