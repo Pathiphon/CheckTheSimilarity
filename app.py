@@ -23,11 +23,31 @@ def checking():
     data = []
     data = request.get_json() 
     answer_stu = (data[0]["answer_stu"])
-    wordvec1 = sentence_break(str(answer_stu))
+    wordvec1 = sentence_break_deepcut(str(answer_stu))
     for i in data[1:]:
         answer.append(i["answer"])
     for x in answer:
-        wordvec2 = sentence_break(str(x))
+        wordvec2 = sentence_break_deepcut(str(x))
+        persent_checking.append(sentence_similarity(wordvec2,wordvec1))
+    max_persent = max(persent_checking)
+    data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
+    result = data[persent_checking.index(max_persent)+1]
+    print(result)
+    return json.dumps({"result":result}) #แปลงObject Python เป็นสตริง json
+
+@app.route('/checksimilarity2', methods = ['POST']) 
+def checking(): 
+    answer_stu =""
+    answer = []
+    persent_checking=[]
+    data = []
+    data = request.get_json() 
+    answer_stu = (data[0]["answer_stu"])
+    wordvec1 = sentence_break_newmm(str(answer_stu))
+    for i in data[1:]:
+        answer.append(i["answer"])
+    for x in answer:
+        wordvec2 = sentence_break_newmm(str(x))
         persent_checking.append(sentence_similarity(wordvec2,wordvec1))
     max_persent = max(persent_checking)
     data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
@@ -35,8 +55,18 @@ def checking():
     print(result)
     return json.dumps({"result":result}) #แปลงObject Python เป็นสตริง json
    
-def sentence_break(text,use_mean=True): 
+def sentence_break_deepcut(text,use_mean=True): 
     cut_text = word_tokenize(text,engine='deepcut') #mm newmm newmm-safe
+    vec = np.zeros((1,300))
+    for word in cut_text:
+        if word in model.index_to_key:
+            vec+= model.get_vector(word)
+        else: pass
+    if use_mean: vec /= len(cut_text)
+    return vec
+
+def sentence_break_newmm(text,use_mean=True): 
+    cut_text = word_tokenize(text,engine='newmm') #mm newmm newmm-safe
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
