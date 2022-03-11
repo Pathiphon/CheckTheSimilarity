@@ -7,6 +7,7 @@ import numpy as np
 from flask import Flask, request
 from flask_cors import CORS
 import json 
+import os
    
 app = Flask(__name__) 
 CORS(app)
@@ -15,20 +16,23 @@ CORS(app)
 def hello():
     return 'hello,I am flash Application'
 
-@app.route('/checksimilarity', methods = ['POST']) 
-def checking(): 
+@app.route('/checksimilarity_attacut', methods = ['POST']) 
+def checking_attacut(): 
     answer_stu =""
     answer = []
     persent_checking=[]
     data = []
     data = request.get_json() 
     answer_stu = (data[0]["answer_stu"])
-    wordvec1 = sentence_break_deepcut(str(answer_stu))
+    wordvec1 = sentence_break_attacut(str(answer_stu))
     for i in data[1:]:
         answer.append(i["answer"])
     for x in answer:
-        wordvec2 = sentence_break_deepcut(str(x))
-        persent_checking.append(sentence_similarity(wordvec2,wordvec1))
+        wordvec2 = sentence_break_attacut(str(x))
+        persent_get = sentence_similarity(wordvec2,wordvec1)
+        persent_checking.append(persent_get)
+        if persent_get==100:
+            break
     max_persent = max(persent_checking)
     data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
     result = data[persent_checking.index(max_persent)+1]
@@ -36,7 +40,7 @@ def checking():
     return json.dumps({"result":result}) #แปลงObject Python เป็นสตริง json
 
 @app.route('/checksimilarity_newmm', methods = ['POST']) 
-def checking(): 
+def checking_newmm(): 
     answer_stu =""
     answer = []
     persent_checking=[]
@@ -48,15 +52,18 @@ def checking():
         answer.append(i["answer"])
     for x in answer:
         wordvec2 = sentence_break_newmm(str(x))
-        persent_checking.append(sentence_similarity(wordvec2,wordvec1))
+        persent_get = sentence_similarity(wordvec2,wordvec1)
+        persent_checking.append(persent_get)
+        if persent_get==100:
+            break
     max_persent = max(persent_checking)
     data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
     result = data[persent_checking.index(max_persent)+1]
     print(result)
-    return json.dumps({"result":result}) #แปลงObject Python เป็นสตริง json
+    return json.dumps({"result":result}) 
 
 @app.route('/checksimilarity_newmmsafe', methods = ['POST']) 
-def checking(): 
+def checking_newmmsafe(): 
     answer_stu =""
     answer = []
     persent_checking=[]
@@ -68,15 +75,39 @@ def checking():
         answer.append(i["answer"])
     for x in answer:
         wordvec2 = sentence_break_newmmsafe(str(x))
-        persent_checking.append(sentence_similarity(wordvec2,wordvec1))
+        persent_get = sentence_similarity(wordvec2,wordvec1)
+        persent_checking.append(persent_get)
+        if persent_get==100:
+            break
     max_persent = max(persent_checking)
     data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
     result = data[persent_checking.index(max_persent)+1]
     print(result)
-    return json.dumps({"result":result}) #แปลงObject Python เป็นสตริง json
-   
-def sentence_break_deepcut(text,use_mean=True): 
-    cut_text = word_tokenize(text,engine='attacut') #mm newmm newmm-safe
+    return json.dumps({"result":result}) 
+
+@app.route('/checksimilarity_jaccard', methods = ['POST']) 
+def checking_jaccard(): 
+    answer_stu =""
+    answer = []
+    persent_checking=[]
+    data = []
+    data = request.get_json() 
+    answer_stu = (data[0]["answer_stu"])
+    for i in data[1:]:
+        answer.append(i["answer"])
+    for x in answer:
+        persent_get = round(jaccard_similarity(str(x),str(answer_stu))*100,2)
+        persent_checking.append(persent_get)
+        if persent_get==100:
+            break
+    max_persent = max(persent_checking)
+    data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
+    result = data[persent_checking.index(max_persent)+1]
+    print(result)
+    return json.dumps({"result":result}) 
+
+def sentence_break_attacut(text,use_mean=True): 
+    cut_text = word_tokenize(text,engine='attacut') 
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
@@ -86,7 +117,7 @@ def sentence_break_deepcut(text,use_mean=True):
     return vec
 
 def sentence_break_newmm(text,use_mean=True): 
-    cut_text = word_tokenize(text,engine='newmm') #mm newmm newmm-safe
+    cut_text = word_tokenize(text,engine='newmm') 
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
@@ -96,7 +127,7 @@ def sentence_break_newmm(text,use_mean=True):
     return vec
 
 def sentence_break_newmmsafe(text,use_mean=True): 
-    cut_text = word_tokenize(text,engine='newmm-safe') #mm newmm newmm-safe
+    cut_text = word_tokenize(text,engine='newmm-safe') 
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
@@ -109,6 +140,11 @@ def sentence_similarity(wordvec1,wordvec2):
     like = cosine_similarity(wordvec1,wordvec2)*100
     return round(like[0][0],2)
 
+def jaccard_similarity(x,y):
+    intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
+    union_cardinality = len(set.union(*[set(x), set(y)]))
+    return intersection_cardinality/float(union_cardinality)
+
 if __name__ == "__main__": 
-    app.run(debug=True,host="0.0.0.0",port=5000)
-    
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
