@@ -12,6 +12,8 @@ import os
 app = Flask(__name__) 
 CORS(app)
 
+txt_len =[]
+
 @app.route("/")
 def hello():
     return 'hello,I am flash Application'
@@ -106,8 +108,52 @@ def checking_jaccard():
     print(result)
     return json.dumps({"result":result}) 
 
+@app.route('/checksimilarity_attacut2', methods = ['POST']) 
+def checking_attacut2(): 
+    answer_stu =""
+    answer = []
+    persent_checking=[]
+    data = []
+    txt_len.clear()
+    data = request.get_json() 
+    answer_stu = (data[0]["answer_stu"])
+    wordvec1 = sentence_break_attacut2(str(answer_stu))
+    for i in data[1:]:
+        answer.append(i["answer"])
+    for x in answer:
+        wordvec2 = sentence_break_attacut2(str(x))
+        persent_get = checksimilarity_txtlen(sentence_similarity(wordvec1,wordvec2))
+        persent_checking.append(persent_get)
+        del txt_len[1]
+        if persent_get==100:
+            break
+    max_persent = max(persent_checking)
+    data[persent_checking.index(max_persent)+1]["persent_get"]=max_persent
+    result = data[persent_checking.index(max_persent)+1]
+    print(result)
+    return json.dumps({"result":result}) #แปลงObject Python เป็นสตริง json
+
+
+def sentence_break_attacut2(text):
+    cut_text = word_tokenize(text.lower(),engine='attacut') 
+    vec = np.zeros((1,300))
+    for word in cut_text:
+        if word in model.index_to_key:
+            vec+= model.get_vector(word)
+        else: pass
+    txt_len.append(len(cut_text))
+    vec /= len(cut_text)
+    return vec
+
+def checksimilarity_txtlen (persent_process):
+    txt_avg = (round((min(txt_len)/max(txt_len))*persent_process,2))
+    txt_dif = persent_process-txt_avg
+    persent_process -= txt_dif
+    if(persent_process<0):persent_process=0
+    return round(persent_process,2)
+
 def sentence_break_attacut(text,use_mean=True): 
-    cut_text = word_tokenize(text,engine='attacut') 
+    cut_text = word_tokenize(text.lower(),engine='attacut') 
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
@@ -117,7 +163,7 @@ def sentence_break_attacut(text,use_mean=True):
     return vec
 
 def sentence_break_newmm(text,use_mean=True): 
-    cut_text = word_tokenize(text,engine='newmm') 
+    cut_text = word_tokenize(text.lower(),engine='newmm') 
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
@@ -127,7 +173,7 @@ def sentence_break_newmm(text,use_mean=True):
     return vec
 
 def sentence_break_newmmsafe(text,use_mean=True): 
-    cut_text = word_tokenize(text,engine='newmm-safe') 
+    cut_text = word_tokenize(text.lower(),engine='newmm-safe') 
     vec = np.zeros((1,300))
     for word in cut_text:
         if word in model.index_to_key:
